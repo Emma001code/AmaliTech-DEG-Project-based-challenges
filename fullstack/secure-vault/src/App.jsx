@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import vaultData from '../data.json'
 import TreeNode from './components/TreeNode'
+import FileLocation from './components/FileLocation'
 
 // Build a flat list of rows the user can currently see.
 // Children only appear if their parent folder id is in expandedIds.
@@ -17,7 +18,6 @@ function getVisibleRows(nodes, expandedIds) {
         expandedIds.includes(node.id) &&
         node.children?.length
       ) {
-        // Recurse into open folders only
         walk(node.children)
       }
     }
@@ -27,46 +27,96 @@ function getVisibleRows(nodes, expandedIds) {
   return rows
 }
 
+// Tree traversal: find the chain of nodes from root -> target id.
+// Example: [Legal, Active_Cases, Doe_vs_..., Discovery_Phase, Email.pdf]
+function findPathToNode(nodes, targetId, path = []) {
+  for (const node of nodes) {
+    const nextPath = [...path, node]
+
+    if (node.id === targetId) {
+      return nextPath
+    }
+
+    if (node.children?.length) {
+      const found = findPathToNode(node.children, targetId, nextPath)
+      if (found) return found
+    }
+  }
+
+  return null
+}
+
 function App() {
   const rootItems = vaultData
 
-  // File shown in the Properties panel (null = empty state)
   const [selectedFile, setSelectedFile] = useState(null)
-  // Which folders are open (we store their ids)
   const [expandedIds, setExpandedIds] = useState([])
-  // Which row has the keyboard focus ring
   const [focusedId, setFocusedId] = useState(rootItems[0]?.id ?? null)
+  // Short feedback after copying the path
+  const [copyDone, setCopyDone] = useState(false)
 
-  // "report.pdf" -> "PDF"
+  // Path for the selected file (used by wildcard File Location panel)
+  const selectedPath = selectedFile
+    ? findPathToNode(rootItems, selectedFile.id)
+    : null
+
   function getFileTypeLabel(file) {
     const parts = file.name.split('.')
     if (parts.length < 2) return 'File'
     return parts[parts.length - 1].toUpperCase()
   }
 
-  // Click / toggle: open if closed, close if open
   function toggleFolder(id) {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     )
   }
 
-  // Keyboard → : force open
   function expandFolder(id) {
     setExpandedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
   }
 
-  // Keyboard ← : force close
   function collapseFolder(id) {
     setExpandedIds((prev) => prev.filter((x) => x !== id))
   }
 
-  // Runs when the explorer panel has focus and a key is pressed
+  // Wildcard: open every folder on the way to this folder, then focus it
+  function jumpToFolder(folderId) {
+    const path = findPathToNode(rootItems, folderId)
+    if (!path) return
+
+    const folderIdsOnPath = path
+      .filter((item) => item.type === 'folder')
+      .map((item) => item.id)
+
+    setExpandedIds((prev) => {
+      const merged = new Set([...prev, ...folderIdsOnPath])
+      return [...merged]
+    })
+    setFocusedId(folderId)
+  }
+
+  // Wildcard: copy "Legal / Active_Cases / ... / file.pdf" for sharing
+  async function copyFullPath() {
+    if (!selectedPath) return
+
+    const pathText = selectedPath.map((item) => item.name).join(' / ')
+
+    try {
+      await navigator.clipboard.writeText(pathText)
+      setCopyDone(true)
+      // Reset the button label after a moment
+      window.setTimeout(() => setCopyDone(false), 1500)
+    } catch {
+      // Fallback if clipboard permission is blocked
+      window.prompt('Copy this path:', pathText)
+    }
+  }
+
   function handleExplorerKeyDown(event) {
     const visible = getVisibleRows(rootItems, expandedIds)
     if (visible.length === 0) return
 
-    // Find where the focus ring is right now
     const currentIndex = Math.max(
       0,
       visible.findIndex((n) => n.id === focusedId),
@@ -74,7 +124,7 @@ function App() {
     const current = visible[currentIndex]
 
     if (event.key === 'ArrowDown') {
-      event.preventDefault() // stop page scroll
+      event.preventDefault()
       const next = visible[Math.min(visible.length - 1, currentIndex + 1)]
       setFocusedId(next.id)
     }
@@ -120,7 +170,6 @@ function App() {
       </header>
 
       <main className="app__main">
-        {/* tabIndex={0} makes this section focusable so keys work here */}
         <section
           className="app__explorer"
           aria-label="File explorer"
@@ -152,20 +201,34 @@ function App() {
           )}
 
           {selectedFile && (
-            <dl className="props">
-              <div className="props__row">
-                <dt className="props__label">Name</dt>
-                <dd className="props__value">{selectedFile.name}</dd>
-              </div>
-              <div className="props__row">
-                <dt className="props__label">Type</dt>
-                <dd className="props__value">{getFileTypeLabel(selectedFile)}</dd>
-              </div>
-              <div className="props__row">
-                <dt className="props__label">Size</dt>
-                <dd className="props__value">{selectedFile.size}</dd>
-              </div>
-            </dl>
+            <>
+              <dl className="props">
+                <div className="props__row">
+                  <dt className="props__label">Name</dt>
+                  <dd className="props__value">{selectedFile.name}</dd>
+                </div>
+                <div className="props__row">
+                  <dt className="props__label">Type</dt>
+                  <dd className="props__value">
+                    {getFileTypeLabel(selectedFile)}
+                  </dd>
+                </div>
+                <div className="props__row">
+                  <dt className="props__label">Size</dt>
+                  <dd className="props__value">{selectedFile.size}</dd>
+                </div>
+              </dl>
+
+              {/* Wildcard: path + jump + copy */}
+              {selectedPath && (
+                <FileLocation
+                  path={selectedPath}
+                  onJumpToFolder={jumpToFolder}
+                  onCopyPath={copyFullPath}
+                  copyDone={copyDone}
+                />
+              )}
+            </>
           )}
         </aside>
       </main>
