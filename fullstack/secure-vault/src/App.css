@@ -24,12 +24,16 @@
   gap: var(--space-3);
 }
 
-/* Temporary brand mark (accent square) */
+/* Brand mark box — holds the padlock next to SecureVault */
 .app__logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #2a4f78; /* deep blue tile behind the lock */
+  flex-shrink: 0;
 }
 
 .app__title {
@@ -63,6 +67,24 @@
 /* Divider between the two panels */
 .app__explorer {
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: auto;
+}
+
+.app__explorer-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.app__visible-count {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
 }
 
 .app__properties {

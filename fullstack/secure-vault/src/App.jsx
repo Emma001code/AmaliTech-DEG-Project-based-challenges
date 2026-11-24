@@ -3,9 +3,10 @@ import './App.css'
 import vaultData from '../data.json'
 import TreeNode from './components/TreeNode'
 import FileLocation from './components/FileLocation'
+import SearchBar from './components/SearchBar'
+import { IconLock } from './components/Icons'
 
 // Build a flat list of rows the user can currently see.
-// Children only appear if their parent folder id is in expandedIds.
 function getVisibleRows(nodes, expandedIds) {
   const rows = []
 
@@ -28,7 +29,6 @@ function getVisibleRows(nodes, expandedIds) {
 }
 
 // Tree traversal: find the chain of nodes from root -> target id.
-// Example: [Legal, Active_Cases, Doe_vs_..., Discovery_Phase, Email.pdf]
 function findPathToNode(nodes, targetId, path = []) {
   for (const node of nodes) {
     const nextPath = [...path, node]
@@ -46,16 +46,61 @@ function findPathToNode(nodes, targetId, path = []) {
   return null
 }
 
+// Bonus search: keep a node if its name matches OR any child matches.
+// Folders that only "survive" because of deep matches stay in the tree
+// so we can auto-expand them and reveal the match.
+function filterTree(nodes, query) {
+  const q = query.trim().toLowerCase()
+  if (!q) return nodes
+
+  const filtered = []
+
+  for (const node of nodes) {
+    if (node.type === 'folder') {
+      const children = filterTree(node.children || [], query)
+      const nameMatch = node.name.toLowerCase().includes(q)
+
+      if (nameMatch || children.length > 0) {
+        filtered.push({
+          ...node,
+          children,
+        })
+      }
+    } else if (node.name.toLowerCase().includes(q)) {
+      filtered.push(node)
+    }
+  }
+
+  return filtered
+}
+
+// Collect every folder id in a tree (used to auto-expand search results)
+function collectFolderIds(nodes, ids = []) {
+  for (const node of nodes) {
+    if (node.type === 'folder') {
+      ids.push(node.id)
+      if (node.children?.length) {
+        collectFolderIds(node.children, ids)
+      }
+    }
+  }
+  return ids
+}
+
 function App() {
   const rootItems = vaultData
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [expandedIds, setExpandedIds] = useState([])
   const [focusedId, setFocusedId] = useState(rootItems[0]?.id ?? null)
-  // Short feedback after copying the path
   const [copyDone, setCopyDone] = useState(false)
+  // Bonus: text the user types into search
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Path for the selected file (used by wildcard File Location panel)
+  // When searching, show a filtered tree; otherwise show full vault
+  const displayTree = filterTree(rootItems, searchQuery)
+  const visibleRows = getVisibleRows(displayTree, expandedIds)
+
   const selectedPath = selectedFile
     ? findPathToNode(rootItems, selectedFile.id)
     : null
@@ -80,7 +125,29 @@ function App() {
     setExpandedIds((prev) => prev.filter((x) => x !== id))
   }
 
-  // Wildcard: open every folder on the way to this folder, then focus it
+  // Typing in search: filter + force-open folders that contain matches
+  function handleSearchChange(value) {
+    setSearchQuery(value)
+
+    if (!value.trim()) {
+      return
+    }
+
+    const filtered = filterTree(rootItems, value)
+    // Open every folder still present in the filtered tree
+    setExpandedIds(collectFolderIds(filtered))
+
+    // Move keyboard focus to the first visible match if possible
+    const firstVisible = getVisibleRows(filtered, collectFolderIds(filtered))[0]
+    if (firstVisible) {
+      setFocusedId(firstVisible.id)
+    }
+  }
+
+  function handleSearchClear() {
+    setSearchQuery('')
+  }
+
   function jumpToFolder(folderId) {
     const path = findPathToNode(rootItems, folderId)
     if (!path) return
@@ -96,7 +163,6 @@ function App() {
     setFocusedId(folderId)
   }
 
-  // Wildcard: copy "Legal / Active_Cases / ... / file.pdf" for sharing
   async function copyFullPath() {
     if (!selectedPath) return
 
@@ -105,16 +171,17 @@ function App() {
     try {
       await navigator.clipboard.writeText(pathText)
       setCopyDone(true)
-      // Reset the button label after a moment
       window.setTimeout(() => setCopyDone(false), 1500)
     } catch {
-      // Fallback if clipboard permission is blocked
       window.prompt('Copy this path:', pathText)
     }
   }
 
   function handleExplorerKeyDown(event) {
-    const visible = getVisibleRows(rootItems, expandedIds)
+    // Don't steal arrow keys while typing in the search box
+    if (event.target.tagName === 'INPUT') return
+
+    const visible = getVisibleRows(displayTree, expandedIds)
     if (visible.length === 0) return
 
     const currentIndex = Math.max(
@@ -161,7 +228,9 @@ function App() {
     <div className="app">
       <header className="app__header">
         <div className="app__brand">
-          <span className="app__logo" aria-hidden="true" />
+          <span className="app__logo" aria-hidden="true">
+            <IconLock />
+          </span>
           <div>
             <h1 className="app__title">SecureVault</h1>
             <p className="app__subtitle">Document workspace</p>
@@ -176,20 +245,37 @@ function App() {
           tabIndex={0}
           onKeyDown={handleExplorerKeyDown}
         >
+          {/* Bonus: search filters the tree and auto-expands matches */}
+          <div className="app__explorer-toolbar">
+            <SearchBar
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onClear={handleSearchClear}
+            />
+            <p className="app__visible-count">
+              {visibleRows.length} visible item
+              {visibleRows.length === 1 ? '' : 's'}
+            </p>
+          </div>
+
           <div className="tree">
-            {rootItems.map((item) => (
-              <TreeNode
-                key={item.id}
-                node={item}
-                depth={0}
-                selectedId={selectedFile?.id ?? null}
-                focusedId={focusedId}
-                expandedIds={expandedIds}
-                onToggleFolder={toggleFolder}
-                onSelectFile={setSelectedFile}
-                onFocusNode={setFocusedId}
-              />
-            ))}
+            {displayTree.length === 0 ? (
+              <p className="app__placeholder">No files match your search.</p>
+            ) : (
+              displayTree.map((item) => (
+                <TreeNode
+                  key={item.id}
+                  node={item}
+                  depth={0}
+                  selectedId={selectedFile?.id ?? null}
+                  focusedId={focusedId}
+                  expandedIds={expandedIds}
+                  onToggleFolder={toggleFolder}
+                  onSelectFile={setSelectedFile}
+                  onFocusNode={setFocusedId}
+                />
+              ))
+            )}
           </div>
         </section>
 
@@ -219,7 +305,6 @@ function App() {
                 </div>
               </dl>
 
-              {/* Wildcard: path + jump + copy */}
               {selectedPath && (
                 <FileLocation
                   path={selectedPath}
