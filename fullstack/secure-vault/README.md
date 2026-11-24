@@ -1,123 +1,143 @@
-# SecureVault-Dashboard
+# SecureVault — File Explorer
 
-This challenge is designed to test your ability to bridge Computer Science fundamentals with Modern Frontend Engineering.
+A dark, high-performance file explorer UI for SecureVault Inc. built for law firms and banks that need to navigate deeply nested confidential folders without page reloads.
 
-## 1. Business Scenario & Context
+**Live demo:** [https://secure-vault-lemon-pi.vercel.app/](https://secure-vault-lemon-pi.vercel.app/)  
+**Design file (Figma):** [SecureVault File Explorer](https://www.figma.com/design/gLWpNlKe6inCLsoRp3tqVI/SecureVault-File-Explorer?node-id=10-2&t=jinVYxqRLUlb0s0p-1)
 
-**Client:** SecureVault Inc.
-**Industry:** Enterprise Cloud Security
-
-**The Problem:** SecureVault offers high-security cloud storage for law firms and banks. Their backend engineers have built a robust API that returns folder structures efficiently. However, their current frontend is a simple list that is hard to navigate. Clients are complaining that they can't manage nested files easily.
-
-**Your Role:** You are the incoming Junior Frontend Engineer. Your task is to design and build a modern, high-performance "File Explorer" UI that impresses the CTO and the Design Lead.
+> Figma access: set to **Anyone with the link can view**.
 
 ---
 
-## 2. The Assignment Stages
+## Overview
 
-This is a **hybrid design/engineering challenge**. You are expected to demonstrate competence in both visual design logic and algorithmic frontend implementation.
+SecureVault’s backend already returns an efficient nested folder tree as JSON. This project is the frontend: a recursive explorer with keyboard navigation, a properties inspector, search, and a File Location wildcard for path context and quick navigation.
 
-### Phase 1: The Design System
+### Features
 
-**Before writing code, you must design the interface.**
-
-- **Deliverable:** A link to a design file (Figma, Penpot, or Sketch) or a PDF export of your design frames.
-- **Requirement:** Your design file must include a dedicated **"Design System" page** that defines:
-  - **Typography Scale**
-  - **Color Palette**
-  - **Spacing Grid**
-  - **Component States**
-- **Brand Guidelines:** SecureVault wants a "Dark Mode" aesthetic that feels "cyber-secure, precise, and fast."
-
-### Phase 2: The Implementation
-
-**Build the application using the design system you created in Phase 1.**
-
-- **Constraint:** You **cannot** use component libraries like Bootstrap, Material UI, Chakra UI, or Ant Design. You must build your components from scratch to prove you understand CSS layout and component abstraction.
-- **Note:** CSS frameworks like Tailwind are allowed _only_ if you use them to build your own reusable component architecture.
+- Recursive folder tree (any depth) with expand / collapse
+- File selection with Properties panel (Name, Type, Size)
+- Keyboard navigation (`↑↓` focus, `←→` folders, `Enter` select)
+- **Wildcard — File Location & Quick Navigation:** ancestor path, jump to folder, copy full path
+- **Bonus — Search:** filter by name and auto-expand folders that contain matches
+- Custom design system (no Bootstrap / MUI / Chakra / Ant Design)
 
 ---
 
-## 3. User Stories & Acceptance Criteria
+## Tech stack
 
-### Core Features (Required)
-
-#### Story 1: The Recursive Tree
-
-> "As a lawyer with 10 years of case files, I need to navigate deeply nested folders without reloading the page."
-
-- **AC 1:** The UI renders the folder structure from the provided JSON.
-- **AC 2:** The component structure must be **recursive**. It should handle 2 levels of depth or 20 levels without breaking the UI.
-- **AC 3:** Folders must expand/collapse on click.
-
-#### Story 2: File Details & Inspection
-
-> "As a user, I need to see file metadata to ensure I'm opening the right version."
-
-- **AC 1:** Clicking a file "selects" it (distinct visual state based on your design).
-- **AC 2:** A "Properties Panel" displays the selected file's Name, Type, and Size.
-
-#### Story 3: Keyboard Accessibility
-
-> "As a power user, I hate reaching for my mouse. I want to navigate the vault using only my keyboard."
-
-- **AC 1:** `Up/Down` arrows move focus between the visible items in the explorer.
-- **AC 2:** `Right` arrow expands a folder; `Left` arrow collapses it.
-- **AC 3:** `Enter` selects the file.
-
-### The "Wildcard" Feature (Required)
-
-#### Story 4: The Innovation Clause
-
-> "As a developer, I want to add one feature that the client didn't ask for, but would significantly improve the user experience."
-
-- **Task:** Identify a gap in the requirements. What is missing?
-- **AC 1:** Implement **one** additional feature of your choice.
-- **AC 2:** In your README, explain _why_ you chose this feature and how it adds value to the business.
-
-### Bonus Feature (Optional)
-
-#### Story 5: Search & Filter
-
-- **AC 1:** A search bar filters the view. Matching items deep inside folders should force those folders to expand automatically.
+- React (Vite)
+- Plain CSS with design tokens (`src/styles/tokens.css`)
+- Local data from `data.json` (provided vault structure)
 
 ---
 
-## 4. Technical Requirements
+## Setup
 
-- **Data:** Use the `data.json` file provided in this repo. Do not edit the JSON structure, but you may add more items to test performance.
-- **Tech Stack:** React, Vue, Svelte, or Vanilla JS.
-- **Documentation:** Your README in the submission must include:
-  1.  Setup instructions.
-  2.  Link to your Design File.
-  3.  Explanation of your **Recursive Strategy** (how you managed the data structure).
-  4.  Explanation of your **Wildcard Feature**.
+```bash
+cd fullstack/secure-vault
+npm install
+npm run dev
+```
 
----
+Open the local URL shown in the terminal (usually `http://localhost:5173`).
 
-## 5. Submission Instructions
+### Build for production
 
-1.  **Fork** this repository.
-2.  Complete the code in your fork.
-3.  **Update the README:**
-    - **Delete** all the instructions in this file (the text you are reading now).
-    - **Replace** them with your own documentation as outlined in Section 4.
-    - _Note: Do not append your docs to the end. The final README should look like a professional project documentation, not a homework assignment._
-4.  Submit your repo link via the [online](https://forms.cloud.microsoft/e/PrfSgKKQ0k) form.
+```bash
+npm run build
+npm run preview
+```
 
 ---
 
-### ⚠️ CRITICAL: Pre-Submission Checklist
+## Design system
 
-**STOP and review your work.** To be eligible for the Solution Defense interview, your submission **MUST** pass the following "Gatekeeper" checks.
+The UI follows a dedicated Figma design system page covering:
 
-If any of the following are incorrect, your submission will be flagged as incomplete and you will **NOT** be invited for an interview.
+- Color palette (canvas, surface, hover, selected, accent, focus, …)
+- Typography (Manrope + IBM Plex Mono)
+- Spacing scale (4–32px)
+- Component states (folder / file rows, search, properties, keyboard focus vs selection)
 
-1.  **Public Repository:** Is your GitHub repository set to **Public**? (Private links will be auto-rejected).
-2.  **Audit-Ready History:** Does your Git commit history show your progress over time? (Repositories with a single "Initial Commit" or "Upload files" containing the entire project will be **rejected as unverifiable**).
-3.  **Working Deployment:** Have you tested your live link in an **Incognito/Private** window to ensure it loads without errors?
-4.  **No Restricted Libraries:** Did you build your own components? (Submissions using **Bootstrap, Material UI, or Chakra UI** will be disqualified).
-5.  **Design File Access:** Is your Figma/Penpot link included and set to **"Anyone with the link can view"**?
-6.  **Documentation:** Have you deleted the original assignment text from the `README.md` and replaced it with your own project documentation?
+Brand direction: dark, precise, cyber-secure.
 
-> **By submitting your work, you acknowledge that failure to meet these criteria effectively ends your application process.**
+---
+
+## Recursive strategy
+
+The explorer is driven by a single recursive component: `TreeNode`.
+
+1. Each `TreeNode` renders one vault item (folder or file).
+2. If the item is a **folder** and its id is in `expandedIds`, the component maps over `node.children` and renders another `TreeNode` for each child with `depth + 1`.
+3. Indentation uses `depth * 16px`, so nesting stays readable at any level.
+4. Expand state lives in `App` (`expandedIds`) so mouse clicks **and** keyboard shortcuts can open/close the same folders.
+5. Selection (`selectedFile`) and keyboard focus (`focusedId`) are separate: focus moves the outline; selecting a file fills Properties.
+
+This keeps one mental model for 2 levels or 20: same component, deeper props.
+
+Path helpers (`findPathToNode`, `filterTree`, `getVisibleRows`) also walk the tree recursively for location, search, and keyboard-visible rows.
+
+---
+
+## Wildcard feature — File Location & Quick Navigation
+
+**Problem:** Lawyers and finance teams often have files with the same name in different folders. Showing only the filename does not establish context.
+
+**Solution:** When a file is selected, Properties shows a **File location** panel that:
+
+1. Displays the full ancestor path (folder → folder → file)
+2. Lets users **click an ancestor folder** to expand that path and focus it in the tree
+3. Offers **Copy full path** for sharing with colleagues
+
+**Engineering value:** Demonstrates tree traversal (finding ancestors) without a backend — all derived from `data.json` in memory.
+
+---
+
+## Bonus — Search & filter
+
+A search field above the tree filters by name. Matching items deep in the vault keep their parent folders in the filtered tree, and those folders are **auto-expanded** so matches are immediately visible. Clearing search restores the full tree.
+
+---
+
+## Project structure
+
+```text
+fullstack/secure-vault/
+├── data.json                 # Vault folder/file tree
+├── index.html
+├── package.json
+├── public/
+│   ├── favicon.png
+│   └── apple-touch-icon.png
+└── src/
+    ├── App.jsx               # Layout, state, keyboard, search, path helpers
+    ├── App.css
+    ├── main.jsx
+    ├── index.css
+    ├── styles/tokens.css     # Design tokens + component styles
+    └── components/
+        ├── TreeNode.jsx      # Recursive explorer row
+        ├── FileLocation.jsx  # Wildcard path UI
+        ├── SearchBar.jsx     # Bonus search input
+        └── Icons.jsx         # Custom SVG icons
+```
+
+---
+
+## Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Move focus among visible rows |
+| `→` | Expand focused folder |
+| `←` | Collapse focused folder |
+| `Enter` | Select focused file |
+
+Click the explorer panel first so it can receive keyboard focus.
+
+---
+
+## License
+
+See `LICENSE` in this folder.
