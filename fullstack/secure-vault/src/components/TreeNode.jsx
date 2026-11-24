@@ -1,23 +1,34 @@
-import { useState } from 'react'
-
-// One row in the explorer. Can render more TreeNodes for children.
-// selectedId / onSelectFile come from App and are passed down the tree.
-function TreeNode({ node, depth = 0, selectedId, onSelectFile }) {
-  // Track if this folder is open. Files don't need this.
-  const [folderExpanded, setfolderExpanded] = useState(false)
-
+// One row in the explorer. Can render more TreeNodes for children (recursion).
+// Expand / focus / selection state come from App so keyboard can control them too.
+function TreeNode({
+  node,
+  depth = 0,
+  selectedId,
+  focusedId,
+  expandedIds, // list of open folder ids owned by App
+  onToggleFolder,
+  onSelectFile,
+  onFocusNode,
+}) {
   const isFolder = node.type === 'folder'
-  // True when this file is the one shown in Properties
+  // Is this folder currently open? App stores that in expandedIds.
+  const folderExpanded = isFolder && expandedIds.includes(node.id)
+  // Selected = file shown in Properties (mouse click or Enter)
   const isSelected = !isFolder && node.id === selectedId
-  // Indent each nested level (16px per depth from your Figma)
+  // Focused = keyboard outline (can be a folder OR a file)
+  const isFocused = node.id === focusedId
+  // Indent deeper levels (16px per level, from your Figma)
   const paddingLeft = depth * 16
 
   function handleRowClick() {
+    // Clicking also moves keyboard focus to this row
+    onFocusNode(node.id)
+
     if (isFolder) {
-      // Folders: open / close only
-      setfolderExpanded((open) => !open)
+      // Folders: open / close
+      onToggleFolder(node.id)
     } else {
-      // Files: tell App "this one is selected"
+      // Files: show details in Properties
       onSelectFile(node)
     }
   }
@@ -26,12 +37,17 @@ function TreeNode({ node, depth = 0, selectedId, onSelectFile }) {
     <div className="tree-node">
       <button
         type="button"
-        // Add selected class when this file is active (Figma selected state)
-        className={`tree-node__row${isSelected ? ' is-selected' : ''}`}
+        className={[
+          'tree-node__row',
+          isSelected ? 'is-selected' : '',
+          isFocused ? 'is-focused' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         style={{ paddingLeft }}
         onClick={handleRowClick}
       >
-        {/* Chevron: > closed, v open. Empty for files. */}
+        {/* Chevron only for folders */}
         <span className="tree-node__chevron" aria-hidden="true">
           {isFolder ? (folderExpanded ? '▼' : '▶') : ''}
         </span>
@@ -42,7 +58,6 @@ function TreeNode({ node, depth = 0, selectedId, onSelectFile }) {
 
         <span className="tree-node__name">{node.name}</span>
 
-        {/* Check mark like your Figma selected state */}
         {isSelected && (
           <span className="tree-node__check" aria-hidden="true">
             ✓
@@ -50,7 +65,7 @@ function TreeNode({ node, depth = 0, selectedId, onSelectFile }) {
         )}
       </button>
 
-      {/* RECURSION: pass selectedId + onSelectFile to every child */}
+      {/* RECURSION: if this folder is open, render TreeNode for each child */}
       {isFolder && folderExpanded && node.children?.length > 0 && (
         <div className="tree-node__children">
           {node.children.map((child) => (
@@ -59,7 +74,11 @@ function TreeNode({ node, depth = 0, selectedId, onSelectFile }) {
               node={child}
               depth={depth + 1}
               selectedId={selectedId}
+              focusedId={focusedId}
+              expandedIds={expandedIds}
+              onToggleFolder={onToggleFolder}
               onSelectFile={onSelectFile}
+              onFocusNode={onFocusNode}
             />
           ))}
         </div>

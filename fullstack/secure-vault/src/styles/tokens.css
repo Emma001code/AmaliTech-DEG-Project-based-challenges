@@ -81,6 +81,17 @@
   background: var(--selected);
 }
 
+/* Keyboard focus ring — different from selected fill (your Figma) */
+.tree-node__row.is-focused {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Don't show a heavy outline on the whole explorer panel */
+.app__explorer:focus {
+  outline: none;
+}
+
 .tree-node__check {
   margin-left: auto;
   color: var(--accent);

@@ -87,6 +87,7 @@
 .app__status {
   display: flex;
   align-items: center;
+  gap: var(--space-4); /* space between shortcut hints */
   height: var(--space-6);
   padding: 0 var(--space-5);
   border-top: 1px solid var(--border);
